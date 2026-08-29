@@ -1,0 +1,22 @@
+# --- Data handling & EDA ---
+pandas>=2.0.0
+numpy>=1.24.0
+
+# --- Modeling ---
+scikit-learn>=1.3.0
+xgboost>=2.0.0
+
+# --- Visualization (for EDA in notebooks) ---
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# --- Notebooks ---
+jupyter>=1.0.0
+
+# --- API serving ---
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.0.0
+
+# --- Azure ML (optional - only needed for Day 5 deployment) ---
+azureml-core>=1.56.0
