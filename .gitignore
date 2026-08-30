@@ -1,6 +1,7 @@
 # --- Data ---
 # Raw/processed data files - don't commit these (size, and often shouldn't be public anyway)
 data/
+docs/
 *.csv
 *.txt
 *.zip
