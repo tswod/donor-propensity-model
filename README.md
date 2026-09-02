@@ -2,6 +2,16 @@
 
 Predicting donor response and retention likelihood from historical giving behavior, using real direct-mail fundraising data. Built to explore how data science can drive donor engagement and retention strategy for a fundraising/advancement organization.
 
+## Table of Contents
+* [Problem Statement](#problem-statement)
+* [Data](#data)
+* [Approach](#approach)
+* [Azure ML Deployment](#azure-ml-deployment)
+* [Repo Structure](#repo-structure)
+* [Running Locally](#running-locally)
+* [Key Takeaways](#key-takeaways)
+* [Extending This for a Real Organization](#extending-this-for-a-real-organization)
+
 ## Problem Statement
 
 Nonprofit and advancement organizations rely on mailed or targeted outreach to solicit donations, but outreach has a real cost — postage, printing, staff time — whether or not a donor responds. The core business question:
@@ -77,12 +87,12 @@ donor-propensity-model/
 │   ├── model.pkl                # trained model artifact
 │   └── azure_scoring_script.py # Azure ML scoring script (init/run)
 ├── conda_env.yml       # Azure ML custom environment definition
-├── requirements.txt
+├── requirements.txt    # packages required to run the application
 └── README.md
 ```
 
 ## Running Locally
-
+Clone the repo, create a virtual environment, and run the following (reference `.gitignore` for any files/directories which may need to be created manually after cloning):
 ```bash
 # install dependencies
 pip install -r requirements.txt
@@ -107,11 +117,11 @@ Interactive API docs available at `http://127.0.0.1:8000/docs`.
 - **Missing data needs a reason, not just a fill** — `TIMELAG`'s missingness was structural (no second gift), while `AGE`/`INCOME`'s was likely non-disclosure; each was handled differently as a result.
 - **Deployment is rarely the smooth part** — getting a model from a notebook to a live, cloud-served endpoint surfaced several real environment and dependency mismatches, each requiring genuine debugging to resolve.
 
-## Extending This for a Real Advancement Organization
+## Extending This for a Real Organization
 
 In a production setting, this model would ideally:
-- Integrate directly with CRM platforms (e.g., Salesforce/CRM Analytics) so propensity scores surface in the tools gift officers already use.
-- Retrain on a regular cadence as new giving/response data comes in.
+- Integrate directly with CRM platforms (e.g., Salesforce/CRM Analytics) so propensity scores surface in the tools already in use.
+- Retrain regularly as new giving/response data comes in.
 - Incorporate cost-per-contact into scoring, so recommendations optimize net expected return rather than raw response probability alone.
 
 ## Tech Stack
