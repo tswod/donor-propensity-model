@@ -48,7 +48,7 @@ Selected and engineered 12 features grounded in RFM logic, cross-referenced agai
 One field (`RFA_2R`, a pre-built recency code) was found to be constant across the entire population — consistent with the dataset's lapsed-donor-only sampling design — and was dropped as uninformative.
 
 ### 3. Modeling
-Trained and compared three models, using `class_weight='balanced'` (or the XGBoost equivalent, `scale_pos_weight`) to address the class imbalance:
+Trained and compared three models, using `class_weight='balanced'` (or the XGBoost equivalent, `scale_pos_weight`) to address the class imbalance and emphasize minimizing mistakes on Responders compared to Non-Responders:
 
 | Model | ROC-AUC | Precision (responders) | Recall (responders) |
 |---|---|---|---|
