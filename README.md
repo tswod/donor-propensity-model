@@ -11,6 +11,7 @@ Predicting donor response and retention likelihood from historical giving behavi
 * [Running Locally](#running-locally)
 * [Key Takeaways](#key-takeaways)
 * [Extending This for a Real Organization](#extending-this-for-a-real-organization)
+* [Tech Stack](#tech-stack)
 
 ## Problem Statement
 
