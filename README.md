@@ -3,23 +3,36 @@
 Predicting donor response and retention likelihood from historical giving behavior, using real direct-mail fundraising data. Built to explore how data science can drive donor engagement and retention strategy for a fundraising/advancement organization.
 
 ## Table of Contents
-* [Problem Statement](#problem-statement)
+* [Background](#background)
 * [Data](#data)
 * [Approach](#approach)
-* [Azure ML Deployment](#azure-ml-deployment)
 * [Repo Structure](#repo-structure)
 * [Running Locally](#running-locally)
-* [Key Takeaways](#key-takeaways)
-* [Extending This for a Real Organization](#extending-this-for-a-real-organization)
+* [Azure ML Deployment](#azure-ml-deployment)
+* [Personal Takeaways](#personal-takeaways)
 * [Tech Stack](#tech-stack)
 
-## Problem Statement
+## Background
 
-Nonprofit and advancement organizations rely on mailed or targeted outreach to solicit donations, but outreach has a real cost — postage, printing, staff time — whether or not a donor responds. The core business question:
+This project explores different data modeling techniques in an attempt to replicate as closely as possible the actual results of the [KDD Cup 1998](https://kdd.ics.uci.edu/databases/kddcup98/kddcup98.html) dataset, a real dataset donated by a U.S. veterans' charity (PVA) containing donor records with giving history, demographics, and response outcomes to a June 1997 mailing. 
 
-> **Which donors are most likely to respond to a solicitation, and how should limited outreach resources be prioritized to maximize response and retention rather than just contact volume?**
+The dataset includes a `TARGET_B` variable, which is the actual, historical outcome of the mailing outreach, indicating (YES/NO) whether a donor really responded to the 1997 mailing which targeted more than 95,000 past donors.  Of those 95,000, less than 5,000 responded — a response rate of ~5%.
 
-This project builds a propensity model to answer that question, using the same kind of RFM (recency, frequency, monetary) and demographic signals a real advancement analytics team would have access to.
+Although in this case the cost of donor outreach (postage, printing, staff time, etc.) may have been relatively cheap, there could be situations where a non-response could be more costly, and a nonprofit or other advancement organization could not afford to run an outreach campaign with such a low response rate. This is where propensity modeling using RFM (recency, frequency, monetary) and demographic signals could optimize our approach to provide more insight into which donors to target BEFORE outreach, narrowing the target population to lower the initial cost while maintaining a similar overall number of responders.
+
+The goal of this project is to attempt to answer this core business question, WITHOUT using the `TARGET_B` variable: 
+
+> **Which donors are most likely to respond to a solicitation, and how should limited outreach resources be prioritized to maximize response and retention?**
+
+After creating a propensity model, we can examine its effectiveness by comparing the model results to the actual, historical `TARGET_B` results. 
+
+Once we identified our most effective model, we created a live, testable API endpoint in Azure Machine Learning Studio (has since been taken down to avoid unnecessary cloud costs) that could be used to input the demographics of a potential donor (see 'Feature Engineering' in the Approach section) and output a score between 0 and 1, where a score >0.5 would indicate the donor is more likely to respond than not (`TARGET_B='YES'`). 
+
+In a production setting for a real organization, this could eventually be extended to:
+- Create API endpoints that allow many potential donors to be scored at once rather than one at a time.
+- Integrate directly with CRM platforms (e.g., Salesforce/CRM Analytics) so propensity scores become automatically included in the tools already in use.
+- Retrain regularly as new giving/response data comes in in order to improve the model's effectiveness.
+- Incorporate cost-per-contact into scoring, so recommendations optimize for net expected return rather than raw response probability alone.
 
 ## Data
 
@@ -29,12 +42,15 @@ This project builds a propensity model to answer that question, using the same k
 
 ## Approach
 
+### Summary
+We compared three modeling approaches (logistic regression, random forest, XGBoost) and selected the best-performing one by testing each model against a separate group of donors that it had never seen during training."
+
 ### 1. Exploratory Data Analysis
 - Loaded the raw ~481-column dataset and identified uninformative columns based on missingness (e.g., 20 columns tied to donor history on unrelated past campaigns had >90% missing data) — these columns were dropped.
 - Confirmed the ~5.1% response rate and its implications for modeling (accuracy is a misleading metric on this data, as a model that always predicts "no response" would already be ~95% "accurate").
 
 ### 2. Feature Engineering
-Selected and engineered 12 features grounded in RFM logic, cross-referenced against the dataset's data dictionary:
+Selected 12 features grounded in RFM logic from the dataset's data dictionary:
 
 | Feature | Type | Notes |
 |---|---|---|
@@ -48,7 +64,10 @@ Selected and engineered 12 features grounded in RFM logic, cross-referenced agai
 One field (`RFA_2R`, a pre-built recency code) was found to be constant across the entire population — consistent with the dataset's lapsed-donor-only sampling design — and was dropped as uninformative.
 
 ### 3. Modeling
-Trained and compared three models, using `class_weight='balanced'` (or the XGBoost equivalent, `scale_pos_weight`) to address the class imbalance and emphasize minimizing mistakes on Responders compared to Non-Responders:
+Trained and compared three models — logistic regression, random forest, and XGBoost — using `class_weight='balanced'` (or the XGBoost equivalent, `scale_pos_weight`) to address the class imbalance and emphasize minimizing mistakes on Responders compared to Non-Responders. Each model was evaluated on donors it hadn't seen during training, to get an honest read on real-world performance.
+
+### 4. Results 
+**Logistic regression (the simplest model)  performed best**, and consistently so across all three trials:
 
 | Model | ROC-AUC | Precision (responders) | Recall (responders) |
 |---|---|---|---|
@@ -56,26 +75,18 @@ Trained and compared three models, using `class_weight='balanced'` (or the XGBoo
 | Random Forest | 0.567 | 0.03 | 0.01 |
 | XGBoost | 0.559 | 0.07 | 0.36 |
 
-**Logistic regression (the simplest model)  performed best**, and consistently so across all three trials. Feature-importance analysis showed that predictive signal was spread fairly evenly across all 12 features rather than concentrated in a few strong predictors, which favors a simpler model less prone to overfitting on a modest, mostly-linear feature set.
+- **ROC-AUC**: A single overall "how good is this model at telling responders and non-responders apart" score, on a scale where 0.5 means "no better than random guessing" and 1.0 means "perfect." 0.604 means the model has real, modest predictive power. Better than chance, but far from a strong signal. This is not unusual for predicting individual human behavior from historical data, especially the KDD Cup 98 dataset which is notoriously difficult to model; people are hard to predict.
+- **Precision**: "When the model says 'yes, this person will likely respond,' how often is it actually right?" A precision of 0.07 means: only 7 out of every 100 people the model flags will actually respond. That sounds low, but is still somewhat better than random guessing and also exceeds the actual results where only about 5 out of 100 random people responded.
+- **Recall**: "Of everyone who really would respond, how many did the model successfully catch?" A recall of 0.56 means: the model catches about 56% of the real responders — a little better than a coin flip, meaning it's missing close to half of the true opportunities, but capturing more than half.
 
-### 4. Threshold Analysis
+Feature-importance analysis showed that predictive signal was spread fairly evenly across all 12 features (none of our 12 selected features stood out as especially significant/more predictive than the others), which favors a simpler model less prone to overfitting on a modest, mostly-linear feature set.
+
+### 5. Threshold Analysis
 Swept the classification threshold from 0.5 to 0.8 and found precision improved only marginally (0.07 → 0.20) while recall collapsed almost entirely (0.56 → 0.00). Given the real-world cost structure (a mailing costs cents, while a missed donor is a fully lost donation) **a lower threshold (0.5 or below) is the better real-world choice**, prioritizing catching more true responders over avoiding false positives.
 
-### 5. Deployment
+### 6. Deployment
 - **Local:** served via a FastAPI `/predict` endpoint, returning a propensity score and classification for a given donor's feature values.
 - **Cloud:** registered the trained model to Azure ML and deployed a live, verified real-time endpoint (see below).
-
-## Azure ML Deployment
-
-Registered the model to Azure ML Studio and deployed it as a managed real-time endpoint (`Standard_DS1_v2`, cost-optimized single instance), with a custom scoring script (`azure_scoring_script.py`) and a custom conda environment matching the exact local package versions (numpy 2.5.2, pandas 3.0.5, scikit-learn 1.9.0, Python 3.12).
-
-Getting to a working deployment involved diagnosing and resolving several infrastructure issues along the way:
-- A subscription resource-provider registration gap (`Microsoft.PolicyInsights`) blocking endpoint provisioning.
-- A pickle/numpy version mismatch between the local training environment and Azure's curated `sklearn-1.5` image (`numpy._core` didn't exist in the older numpy Azure shipped).
-- A custom Docker-context environment that silently didn't apply its conda dependencies, traced to a missing `COPY`/`RUN conda env update` step.
-- A legacy `azureml-defaults` dependency pulling in an incompatible old `pyarrow` build.
-
-The final deployment was verified end-to-end: a live request to the Azure endpoint returned a propensity score of **0.5132** for a test donor — identical to the score returned by the local FastAPI endpoint for the same input, confirming the deployed model matches the locally validated one.
 
 ## Repo Structure
 
@@ -98,7 +109,7 @@ Clone the repo, create a virtual environment, and run the following (reference `
 # install dependencies
 pip install -r requirements.txt
 cd api
-# run the API (requires model.pkl to exist - see notebooks/ to train one)
+# run the API (requires model.pkl to exist - see/run notebooks/ to train one)
 uvicorn main:app --reload
 ```
 
@@ -111,19 +122,34 @@ curl -X POST http://127.0.0.1:8000/predict \
 
 Interactive API docs available at `http://127.0.0.1:8000/docs`.
 
-## Key Takeaways
+## Azure ML Deployment
+
+Registered the model to Azure ML Studio and deployed it as a managed real-time endpoint (`Standard_DS1_v2`, cost-optimized single instance), with a custom scoring script (`azure_scoring_script.py`) and a custom conda environment matching the exact local package versions (numpy 2.5.2, pandas 3.0.5, scikit-learn 1.9.0, Python 3.12).
+
+Getting to a working deployment involved diagnosing and resolving several infrastructure issues along the way:
+- A subscription resource-provider registration gap (`Microsoft.PolicyInsights`) blocking endpoint provisioning.
+- A pickle/numpy version mismatch between the local training environment and Azure's curated `sklearn-1.5` image (`numpy._core` didn't exist in the older numpy Azure shipped).
+- A custom Docker-context environment that silently didn't apply its conda dependencies, traced to a missing `COPY`/`RUN conda env update` step.
+- A legacy `azureml-defaults` dependency pulling in an incompatible old `pyarrow` build.
+
+The final deployment was verified end-to-end. The following live request was made to the Azure endpoint from my local terminal: 
+
+```bash
+curl -X POST "https://donor-propensity-ws-zsujj.eastus.inference.ml.azure.com/score) \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <Key>" \   # actual bearer key omitted here
+  -d "{\"data\": [{\"NGIFTALL\": 12, \"CARDGIFT\": 8, \"AVGGIFT\": 15.50, \"MINRAMNT\": 5.0, \"MAXRAMNT\": 25.0, \"TIMELAG\": 3.0, \"MONTHS_SINCE_LAST_GIFT\": 18, \"MONTHS_SINCE_FIRST_GIFT\": 91, \"AGE\": 62, \"AGE_MISSING\": 0, \"INCOME\": 4, \"INCOME_MISSING\": 0}]}"
+```
+Output: `[{\"propensity_score\": 0.5132, \"predicted_class\": 1}]`
+
+Returned a propensity score of **0.5132** for a test donor — identical to the score returned by the local FastAPI endpoint for the same input, confirming the deployed model matches the locally validated one.
+
+## Personal Takeaways
 
 - **Simpler isn't always worse** — logistic regression outperformed both random forest and XGBoost on this dataset, a genuine, evidence-backed finding rather than a default assumption.
 - **Threshold choice is a business decision, not just a statistical one** — the "right" cutoff depends on the real relative cost of a wasted contact vs. a missed donor.
-- **Missing data needs a reason, not just a fill** — `TIMELAG`'s missingness was structural (no second gift), while `AGE`/`INCOME`'s was likely non-disclosure; each was handled differently as a result.
+- **Missing data needs a reason, not just a fill** — `TIMELAG`'s missing data was structural (no second gift), while `AGE`/`INCOME`'s was likely due to non-disclosure; each was handled differently as a result.
 - **Deployment is rarely the smooth part** — getting a model from a notebook to a live, cloud-served endpoint surfaced several real environment and dependency mismatches, each requiring genuine debugging to resolve.
-
-## Extending This for a Real Organization
-
-In a production setting, this model would ideally:
-- Integrate directly with CRM platforms (e.g., Salesforce/CRM Analytics) so propensity scores surface in the tools already in use.
-- Retrain regularly as new giving/response data comes in.
-- Incorporate cost-per-contact into scoring, so recommendations optimize net expected return rather than raw response probability alone.
 
 ## Tech Stack
 
