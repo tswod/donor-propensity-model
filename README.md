@@ -1,6 +1,6 @@
 # Donor Propensity Model
 
-Predicting donor response and retention likelihood from historical giving behavior, using real direct-mail fundraising data. Built to explore how data science can drive donor engagement and retention strategy for a fundraising/advancement organization.
+Predicting donor response and retention likelihood from historical giving behavior, using real direct-mail fundraising data. Built to explore how data science can drive donor engagement and retention strategy for a fundraising/advancement organization. Includes a working, testable tool that can take a donor's giving history and return a real-time likelihood-to-respond score, the kind of system a fundraising team could plug into their existing workflow.
 
 ## Table of Contents
 * [Background](#background)
