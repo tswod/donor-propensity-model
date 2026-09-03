@@ -82,6 +82,11 @@ Trained and compared three models — logistic regression, random forest, and XG
 - **Precision**: "When the model says 'yes, this person will likely respond,' how often is it actually right?" A precision of 0.07 means: only 7 out of every 100 people the model flags will actually respond. That sounds low, but is still somewhat better than random guessing and also exceeds the actual results where only about 5 out of 100 random people responded.
 - **Recall**: "Of everyone who really would respond, how many did the model successfully catch?" A recall of 0.56 means: the model catches about 56% of the real responders — a little better than a coin flip, meaning it's missing close to half of the true opportunities, but capturing more than half.
 
+In concrete terms, using a test group of 19,083 donors (969 of whom were real responders):
+- The model correctly flagged **544** of the 969 real responders.
+- It missed the other **425**.
+- It also incorrectly flagged **7,265** non-responders as "likely to respond" (false alarms).
+
 Feature-importance analysis showed that predictive signal was spread fairly evenly across all 12 features (none of our 12 selected features stood out as especially significant/more predictive than the others), which favors a simpler model less prone to overfitting on a modest, mostly-linear feature set.
 
 ## Analysis
