@@ -82,7 +82,22 @@ Trained and compared three models — logistic regression, random forest, and XG
 Feature-importance analysis showed that predictive signal was spread fairly evenly across all 12 features (none of our 12 selected features stood out as especially significant/more predictive than the others), which favors a simpler model less prone to overfitting on a modest, mostly-linear feature set.
 
 ### 5. Threshold Analysis
-Swept the classification threshold from 0.5 to 0.8 and found precision improved only marginally (0.07 → 0.20) while recall collapsed almost entirely (0.56 → 0.00). Given the real-world cost structure (a mailing costs cents, while a missed donor is a fully lost donation) **a lower threshold (0.5 or below) is the better real-world choice**, prioritizing catching more true responders over avoiding false positives.
+The model gives a probability (0 to 1) that a donor will respond. We have to pick a cutoff: above what probability do we call someone "likely to respond" and mail them?
+
+By default, that cutoff is 0.5 (50%). We tested what happens if we raise it, requiring the model to be more confident before flagging someone:
+
+| Threshold | Precision | Recall | Real responders caught (out of 969) |
+|---|---|---|---|
+| 0.5 | 0.07 | 0.56 | ~544 |
+| 0.6 | 0.10 | 0.15 | ~145 |
+| 0.7 | 0.12 | 0.02 | ~19 |
+| 0.8 | 0.20 | 0.00 | ~0 |
+
+Raising the cutoff barely improves precision (how often the model is right when it says "yes") but causes recall (how many real responders get caught) to collapse almost completely. In other words: being pickier about who to mail doesn't meaningfully reduce wasted mailings, but it does cause us to miss the vast majority of donors who would have actually given.
+
+Since a mailing costs relatively little (postage, printing) compared to the value of a donation, missing a real donor is far more costly than wasting a mailing on someone who doesn't respond. That means a lower cutoff — mailing more people, even at a higher false-alarm rate — is the better real-world choice, since it catches more actual donors without a large offsetting cost.
+
+*(Follow-up: since low mailing cost favors casting an even wider net, we also tested lowering the threshold below 0.5 — see results below.)*
 
 ### 6. Deployment
 - **Local:** served via a FastAPI `/predict` endpoint, returning a propensity score and classification for a given donor's feature values.
