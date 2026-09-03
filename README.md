@@ -6,6 +6,9 @@ Predicting donor response and retention likelihood from historical giving behavi
 * [Background](#background)
 * [Data](#data)
 * [Approach](#approach)
+* [Results](#results)
+* [Analysis](#analysis)
+* [Deployment](#deployment)
 * [Repo Structure](#repo-structure)
 * [Running Locally](#running-locally)
 * [Azure ML Deployment](#azure-ml-deployment)
@@ -66,7 +69,7 @@ One field (`RFA_2R`, a pre-built recency code) was found to be constant across t
 ### 3. Modeling
 Trained and compared three models — logistic regression, random forest, and XGBoost — using `class_weight='balanced'` (or the XGBoost equivalent, `scale_pos_weight`) to address the class imbalance and emphasize minimizing mistakes on Responders compared to Non-Responders. Each model was evaluated on donors it hadn't seen during training, to get an honest read on real-world performance.
 
-### 4. Results 
+## Results 
 **Logistic regression (the simplest model)  performed best**, and consistently so across all three trials:
 
 | Model | ROC-AUC | Precision (responders) | Recall (responders) |
@@ -81,7 +84,7 @@ Trained and compared three models — logistic regression, random forest, and XG
 
 Feature-importance analysis showed that predictive signal was spread fairly evenly across all 12 features (none of our 12 selected features stood out as especially significant/more predictive than the others), which favors a simpler model less prone to overfitting on a modest, mostly-linear feature set.
 
-### 5. Threshold Analysis
+## Analysis
 The model gives a probability (0 to 1) that a donor will respond. We have to pick a cutoff: above what probability do we call someone "likely to respond" and mail them?
 
 By default, that cutoff is 0.5 (50%). We tested what happens if we raise it, requiring the model to be more confident before flagging someone:
@@ -99,7 +102,7 @@ Since a mailing costs relatively little (postage, printing) compared to the valu
 
 *(Follow-up: since low mailing cost favors casting an even wider net, we also tested lowering the threshold below 0.5 — see results below.)*
 
-### 6. Deployment
+## Deployment
 - **Local:** served via a FastAPI `/predict` endpoint, returning a propensity score and classification for a given donor's feature values.
 - **Cloud:** registered the trained model to Azure ML and deployed a live, verified real-time endpoint (see below).
 
